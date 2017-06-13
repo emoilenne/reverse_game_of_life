@@ -12,16 +12,17 @@ class Transformation:
     FLIP_DIAGONAL2 = 'flip_diagonal2'
 
     # Transformation functions
-    transform = {
-    'original':             lambda window: window,
-    'flip_vertically':      lambda window: window[::-1],
-    'flip_horizontally':    lambda window: window[:,::-1],
-    'rotate90':             lambda window: np.rot90(window),
-    'rotate180':            lambda window: window[:,::-1][::-1],
-    'rotate270':            lambda window: np.rot90(window[:,::-1][::-1]),
-    'flip_diagonal1':       lambda window: np.rot90(window[::-1]),
-    'flip_diagonal2':       lambda window: np.rot90(window[:,::-1])
+    do = {
+    ORIGINAL:             lambda window: window,
+    FLIP_VERTICALLY:      lambda window: window[::-1],
+    FLIP_HORIZONTALLY:    lambda window: window[:,::-1],
+    ROTATE90:             lambda window: np.rot90(window),
+    ROTATE180:            lambda window: window[:,::-1][::-1],
+    ROTATE270:            lambda window: np.rot90(window[:,::-1][::-1]),
+    FLIP_DIAGONAL1:       lambda window: np.rot90(window[::-1]),
+    FLIP_DIAGONAL2:       lambda window: np.rot90(window[:,::-1])
     }
+
 
 class Window:
 
