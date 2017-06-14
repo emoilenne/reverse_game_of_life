@@ -3,18 +3,22 @@ import csv
 from window import Window, Transformation
 
 class ModelStorage(dict):
+    def __init__(self, size):
+        self.size = size
+
     def __getitem__(self, idx):
-        self.setdefault(idx, TrainingModel())
+        self.setdefault(idx, TrainingModel(self.size))
         return dict.__getitem__(self, idx)
 
 class TrainingModel:
-    def __init__(self):
+    def __init__(self, size):
         """
             Initiate training model, which stores predictions of the start grid
             and number of occurances of this model in the testing.
         """
         self.occurances = 0
-        self.data = None
+        self.data = np.zeros((size, size))
+        self.size = size
 
     def addPrediction(self, window): #TODO if size is not needed, can change window to data
         """
@@ -39,7 +43,7 @@ class TrainingModel:
 
         # Create model3d that stores [countCellAlive, occurancesOfCell] for each element of model,
         # where occurancesOfCell == self.occurances
-        model3d = np.array([model[h,w] if position == 0 else self.occurances for h in range(self.size) for w in range(self.size) for position in range(2)]).reshape(self.size, self.size, 2)
+        model3d = np.array([model[h,w] if isCellAliveElem == 0 else self.occurances for h in range(self.size) for w in range(self.size) for isCellAliveElem in range(2)]).reshape(self.size, self.size, 2)
 
         # Add model on the prediction grid at the position
         predictionGrid[position[0]:position[0] + self.size, position[1]: position[1] + self.size] = model3d
@@ -56,9 +60,9 @@ class TestCase:
         try:
             #TODO can just read values as id,delta,start.1,start.2,... without reading field names
             self.data = {fields[index]: row[index] for index in range(len(fields))}
-            self.id = self.data['id']
+            self.id = int(self.data['id'])
             del(self.data['id'])
-            self.steps = self.data['delta']
+            self.steps = int(self.data['delta'])
             del(self.data['delta'])
         except:
             raise Exception("CSV file is not valid.")
@@ -76,6 +80,9 @@ class TestCase:
         if isTraining:
             self.startGrid = self.createGrid('start')
 
+    def getId(self):
+        return self.id
+
     def createGrid(self, name):
         """
             Create a grid with specific name from data stored in this test case.
@@ -84,7 +91,7 @@ class TestCase:
         try:
             # Read values from the file
             for index in range(self.height * self.width):
-                grid.append(self.data[name + '.' + str(index + 1)])
+                grid.append(int(self.data[name + '.' + str(index + 1)]))
 
             # Creade NumPy array from obtained values
             grid = np.array(grid).reshape(self.height, self.width)
@@ -109,13 +116,13 @@ class TestCase:
         model = models[self.steps][stopWindowHash]
 
         # Transform start window the same as stop window was transformed in hash
-        startWindow = Transformation.do[transformation](startWindow)
+        startWindow.data = Transformation.do[transformation](startWindow.data)
 
         # Add predictions to stored model
         model.addPrediction(startWindow)
 
         # Save model (needed if this was the first time the model has found)
-        models[steps][stopWindowHash] = model
+        models[self.steps][stopWindowHash] = model
 
     def train(self, models):
         """
@@ -131,7 +138,7 @@ class TestCase:
             Predict start grid based on stop grid of this test case using models.
         """
         # Create predicitons grid
-        predictionGrid = 0
+        predictionGrid = np.zeros((self.height, self.width, 2))
 
         # Collect predictions grid from each window
         for height in range(self.height - self.windowSize + 1):
@@ -150,14 +157,13 @@ class TestCase:
 
         #TODO can create start grid directly from prediciton grid
         # Create probability grid, where each element will represent probability of this cell alive (from 0. to 1.)
-        probabilityGrid = np.array([predictionGrid[h,w,0] / float(predictionGrid[h,w,1]) for h in range(self.height) for w in range(self.width)]).reshape(height, width)
+        probability = lambda count, occurances: 0. if occurances == 0 else count / float(occurances)
+        probabilityGrid = np.array([probability(predictionGrid[h,w,0], predictionGrid[h,w,1]) for h in range(self.height) for w in range(self.width)]).reshape(self.height, self.width)
 
         # Create start grid based on probability grid
-        startGrid = np.array([round(probabilityGrid[h,w]) for h in range(self.height) for w in range(self.width)]).reshape(height, width)
-        return startGrid
+        startGrid = np.array([round(probabilityGrid[h,w]) for h in range(self.height) for w in range(self.width)], dtype=np.int8).reshape(self.height, self.width)
 
-    def getId(self):
-        return self.id
+        return startGrid
 
 class TrainingAgent:
     def __init__(self, height, width, minSteps, maxSteps, windowSize = 4):
@@ -174,9 +180,9 @@ class TrainingAgent:
         self.windowSize = windowSize
 
         # Create models storage for each humber of game steps (1...5)
-        self.models = {index: ModelStorage() for index in range(minSteps, maxSteps + 1)}
+        self.models = {index: ModelStorage(windowSize) for index in range(minSteps, maxSteps + 1)}
 
-    def train(self, trainFilename):
+    def train(self, trainFilename, log=True):
         """
             Train agent to predict start grid based on training data from the csv file.
         """
@@ -192,15 +198,23 @@ class TrainingAgent:
             # Store the names of the fields
             fields = csvreader.next()
 
+            if log:
+                # Indicate training
+                print("---- Training ----")
+
             # Read one row at a time and perform training
             for row in csvreader:
                 # Create a testcase
                 testcase = TestCase(fields, row, self.height, self.width, isTraining=True)
 
+                if log:
+                    # Print id of training episode
+                    print("Training #%d" % testcase.getId())
+
                 # Train this test case
                 testcase.train(self.models)
 
-    def predict(self, predictFilename, outputFilename):
+    def predict(self, predictFilename, outputFilename, log=True):
         """
             Predict start grid from stop grid from the csv file.
         """
@@ -224,13 +238,23 @@ class TrainingAgent:
                 # Write names of the fields to output file
                 outputCSVwriter.writerow(['id'] + ['start.' + str(i + 1) for i in range(self.height * self.width)])
 
+                if log:
+                    # Indicate testing
+                    print("---- Testing ----")
+
+
                 # Read one row at a time and predict start grid
                 for row in predictCSVreader:
                     # Create a testcase
                     testcase = TestCase(fields, row, self.height, self.width, isTraining=False)
 
+                    if log:
+                        # Print id of testing episode
+                        print("Testing #%d" % testcase.getId())
+
+
                     # Predict start grid for the test case
-                    startGrid = testcase.predict(models)
+                    startGrid = testcase.predict(self.models)
 
                     # Write values to output file
                     outputCSVwriter.writerow([testcase.getId()] + list(startGrid.reshape(self.height * self.width)))

@@ -55,10 +55,10 @@ class Window:
         hashWindow = np.array([2 ** x for x in range(self.size ** 2)]).reshape(self.size, self.size)
 
         # Create dictionary with all possible transformations of current window
-        allStates = {state: func(self.data) for state, func in Transformation.transform}
+        allStates = {state: func(self.data) for state, func in Transformation.do.items()}
 
         # Calculate each hash value for transformated windows
-        hashes = {state: sum(window * self.hashWindow) for state, window in allStates.items()}
+        hashes = {state: sum(sum(window * hashWindow)) for state, window in allStates.items()}
 
         # Return minimum hash from all possible transformations
         return min(hashes.items(), key=lambda p: p[1])
