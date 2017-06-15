@@ -62,10 +62,13 @@ class TrainingAgent:
                 # Add model to storage
                 modelHash = self.models[steps].add(fields, row)
 
+                # Save window size
+                self.windowSize = self.models[steps][modelHash].size
+
                 timeCaseEnd = time.time()
                 if log:
                     # Print hash of the model
-                    print("Loading #%d for #%d steps took %.3f" % (modelHash, steps, (timeCaseEnd - timeCaseStart) * 1000.))
+                    print("Loading model #%d for #%d steps took %.3f ms" % (modelHash, steps, (timeCaseEnd - timeCaseStart) * 1000.))
 
         timeEnd = time.time()
         if log:

@@ -62,6 +62,10 @@ class TrainingModel:
         except:
             raise Exception("CSV file is not valid.")
 
+        # Check number of remaining fields
+        if len(data) != self.size ** 2:
+            raise Exception("Wrong number of cells for window size #%d" % self.size)
+
         # Create data for the model
         window = []
         try:
