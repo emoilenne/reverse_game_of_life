@@ -1,5 +1,7 @@
 import numpy as np
 import csv
+import time
+import os
 from testcase import TestCase
 from modelStorage import ModelStorage
 
@@ -17,6 +19,12 @@ class TrainingAgent:
         self.width = width
         self.windowSize = windowSize
 
+        # Delete previous log file
+        try:
+            os.remove('log.txt')
+        except:
+            pass
+
         # Create models storage for each humber of game steps (1...5)
         self.models = {index: ModelStorage(steps=index, size=windowSize) for index in range(minSteps, maxSteps + 1)}
 
@@ -24,6 +32,9 @@ class TrainingAgent:
         """
             Load model values from the file for predictions
         """
+        # Measure how much time takes to run
+        timeStart = time.time()
+
         # Check that file is CSV
         if not modelsFilename.endswith(".csv"):
             modelsFilename += '.csv'
@@ -42,20 +53,35 @@ class TrainingAgent:
 
             # Read one row at a time and store the model
             for row in modelsCSVreader:
+                # Track execution time of one case
+                timeCaseStart = time.time()
+
                 # Get number of steps to determine models storage
                 steps = ModelStorage.getSteps(fields, row)
 
                 # Add model to storage
                 modelHash = self.models[steps].add(fields, row)
 
+                timeCaseEnd = time.time()
                 if log:
                     # Print hash of the model
-                    print("Loading #%d for #%d steps" % (modelHash, steps))
+                    print("Loading #%d for #%d steps took %.3f" % (modelHash, steps, (timeCaseEnd - timeCaseStart) * 1000.))
+
+        timeEnd = time.time()
+        if log:
+            # Print time of execution
+            print("Loading models took %.3f s" % (timeEnd - timeStart))
+            with open('log.txt', 'a+') as log:
+                log.write("Loading models took %.3f s\n" % (timeEnd - timeStart))
+
 
     def saveModels(self, modelsFilename, log=True):
         """
             Save trained models to the file for later use
         """
+        # Measure how much time takes to run
+        timeStart = time.time()
+
         # Check that file is CSV
         if not modelsFilename.endswith(".csv"):
             trainFilename += '.csv'
@@ -79,18 +105,33 @@ class TrainingAgent:
 
                 # Go through each model and write it in the file
                 for modelHash, model in modelStorage.items():
-                    if log:
-                        # Print hash of the model
-                        print("Saving model #%d for #%d steps" % (modelHash, steps))
+                    # Track execution time of one case
+                    timeCaseStart = time.time()
 
                     # Write model values to models file
                     modelsCSVwriter.writerow(model.createRow())
+
+                    timeCaseEnd = time.time()
+                    if log:
+                        # Print hash of the model
+                        print("Saving model #%d for #%d steps took %.3f ms" % (modelHash, steps, (timeCaseEnd - timeCaseStart) * 1000.))
+
+        timeEnd = time.time()
+        if log:
+            # Print time of execution
+            print("Saving models took %.3f s" % (timeEnd - timeStart))
+            with open('log.txt', 'a+') as log:
+                log.write("Saving models took %.3f s\n" % (timeEnd - timeStart))
+
 
 
     def train(self, trainFilename, log=True):
         """
             Train agent to predict start grid based on training data from the csv file.
         """
+        # Measure how much time takes to run
+        timeStart = time.time()
+
         # Check that file is CSV
         if not trainFilename.endswith(".csv"):
             trainFilename += '.csv'
@@ -109,20 +150,35 @@ class TrainingAgent:
 
             # Read one row at a time and perform training
             for row in trainCSVreader:
+                # Track execution time of one case
+                timeCaseStart = time.time()
+
                 # Create a testcase
                 testcase = TestCase(fields, row, self.height, self.width, isTraining=True)
 
-                if log:
-                    # Print id of training episode
-                    print("Training #%d" % testcase.getId())
-
                 # Train this test case
                 testcase.train(self.models)
+
+                timeCaseEnd = time.time()
+                if log:
+                    # Print hash of the model
+                    print("Training #%d took %.3f ms" % (testcase.getId(), (timeCaseEnd - timeCaseStart) * 1000.))
+
+        timeEnd = time.time()
+        if log:
+            # Print time of execution
+            print("Training took %.3f s or %.3f min" % (timeEnd - timeStart, (timeEnd - timeStart) / 60.))
+            with open('log.txt', 'a+') as log:
+                log.write(("Training took %.3f s or %.3f min\n" % (timeEnd - timeStart, (timeEnd - timeStart) / 60.)))
+
 
     def predict(self, predictFilename, outputFilename, log=True):
         """
             Predict start grid from stop grid from the csv file.
         """
+        # Measure how much time takes to run
+        timeStart = time.time()
+
         # Check that file is CSV
         if not predictFilename.endswith(".csv"):
                 predictFilename += '.csv'
@@ -154,16 +210,26 @@ class TrainingAgent:
 
                 # Read one row at a time and predict start grid
                 for row in predictCSVreader:
+                    # Track execution time of one case
+                    timeCaseStart = time.time()
+
                     # Create a testcase
                     testcase = TestCase(fields, row, self.height, self.width, isTraining=False)
-
-                    if log:
-                        # Print id of testing episode
-                        print("Testing #%d" % testcase.getId())
-
 
                     # Predict start grid for the test case
                     startGrid = testcase.predict(self.models)
 
                     # Write values to output file
                     outputCSVwriter.writerow([testcase.getId()] + list(startGrid.reshape(self.height * self.width)))
+
+                    timeCaseEnd = time.time()
+                    if log:
+                        # Print id of testing episode
+                        print("Testing #%d took %.3f ms" % (testcase.getId(), (timeCaseEnd - timeCaseStart) * 1000.))
+
+        timeEnd = time.time()
+        if log:
+            # Print time of execution
+            print("Testing took %.3f s or %.3f min" % (timeEnd - timeStart, (timeEnd - timeStart) / 60.))
+            with open('log.txt', 'a+') as log:
+                log.write("Testing took %.3f s or %.3f min\n" % (timeEnd - timeStart, (timeEnd - timeStart) / 60.))

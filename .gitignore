@@ -3,3 +3,6 @@
 
 # Files for testing
 *.csv
+
+# Log
+log.txt
