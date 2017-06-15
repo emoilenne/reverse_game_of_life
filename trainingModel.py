@@ -1,4 +1,5 @@
 import numpy as np
+from window import Transformation
 
 class TrainingModel:
     def __init__(self, steps=0, size=0, modelHash=0, fields=None, row=None):
@@ -10,7 +11,7 @@ class TrainingModel:
             self.parseRow(fields, row)
         else:
             self.occurrences = 0
-            self.data = np.zeros((size, size))
+            self.data = np.zeros((size, size), dtype=np.int32)
             self.size = size
             self.steps = steps
             self.modelHash = modelHash
@@ -65,11 +66,11 @@ class TrainingModel:
         window = []
         try:
             # Read values from the file
-            for index in range(size ** 2):
-                window.append(int(data['models.' + str(index + 1)]))
+            for index in range(self.size ** 2):
+                window.append(int(data['model.' + str(index + 1)]))
 
             # Creade NumPy array from obtained values
-            self.data = np.array(window).reshape(self.size, self.size)
+            self.data = np.array(window, dtype=np.int32).reshape(self.size, self.size)
         except Exception as e:
             raise Exception("Unable to create model #%d for #%d steps" % (self.modelHash, self.steps))
 
@@ -77,4 +78,4 @@ class TrainingModel:
         """
             Create row of CSV that will store data from the model.
         """
-        return [self.modelHash, self.steps, self.size, self.occurrences] + list(self.data.resize(self.size ** 2))
+        return [self.modelHash, self.steps, self.size, self.occurrences] + list(self.data.reshape(self.size ** 2))

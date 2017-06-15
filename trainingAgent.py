@@ -18,7 +18,7 @@ class TrainingAgent:
         self.windowSize = windowSize
 
         # Create models storage for each humber of game steps (1...5)
-        self.models = {index: ModelStorage(windowSize) for index in range(minSteps, maxSteps + 1)}
+        self.models = {index: ModelStorage(steps=index, size=windowSize) for index in range(minSteps, maxSteps + 1)}
 
     def loadModels(self, modelsFilename, log=True):
         """
@@ -42,15 +42,15 @@ class TrainingAgent:
 
             # Read one row at a time and store the model
             for row in modelsCSVreader:
-                # Create model from row
-                model = TrainingModel(fields=fiels, row=row)
+                # Get number of steps to determine models storage
+                steps = ModelStorage.getSteps(fields, row)
+
+                # Add model to storage
+                modelHash = self.models[steps].add(fields, row)
 
                 if log:
                     # Print hash of the model
-                    print("Loading #%d for #%d steps" % (model.modelHash, model.steps))
-
-                # Save model
-                self.models[model.steps][model.modelHash] = model
+                    print("Loading #%d for #%d steps" % (modelHash, steps))
 
     def saveModels(self, modelsFilename, log=True):
         """
