@@ -154,7 +154,7 @@ class TrainingAgent:
                 timeCaseStart = time.time()
 
                 # Create a testcase
-                testcase = TestCase(fields, row, self.height, self.width, isTraining=True)
+                testcase = TestCase(fields, row, self.height, self.width, self.windowSize, isTraining=True)
 
                 # Train this test case
                 testcase.train(self.models)
@@ -214,7 +214,7 @@ class TrainingAgent:
                     timeCaseStart = time.time()
 
                     # Create a testcase
-                    testcase = TestCase(fields, row, self.height, self.width, isTraining=False)
+                    testcase = TestCase(fields, row, self.height, self.width, self.windowSize, isTraining=False)
 
                     # Predict start grid for the test case
                     startGrid = testcase.predict(self.models)

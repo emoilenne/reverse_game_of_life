@@ -2,7 +2,7 @@ import numpy as np
 from window import Window, Transformation
 
 class TestCase:
-    def __init__(self, fields, row, height, width, isTraining, windowSize=4):
+    def __init__(self, fields, row, height, width, windowSize, isTraining):
         """
             Initiate testcase with a row containing id, steps and grids
         """
