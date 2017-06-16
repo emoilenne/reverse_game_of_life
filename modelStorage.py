@@ -1,12 +1,11 @@
 from trainingModel import TrainingModel
 
 class ModelStorage(dict):
-    def __init__(self, steps, size):
-        self.size = size
+    def __init__(self, steps):
         self.steps = steps
 
     def __getitem__(self, idx):
-        self.setdefault(idx, TrainingModel(steps=self.steps, size=self.size, modelHash=idx))
+        self.setdefault(idx, TrainingModel(steps=self.steps, neighbors=idx))
         return dict.__getitem__(self, idx)
 
     def add(self, fields, row):
@@ -16,10 +15,10 @@ class ModelStorage(dict):
         # Create model from row
         model = TrainingModel(fields=fields, row=row)
 
-        # SAve model
-        self[model.modelHash] = model
+        # Save model
+        self[model.neighbors] = model
 
-        return model.modelHash
+        return model.neighbors
 
     @staticmethod
     def getSteps(fields, row):

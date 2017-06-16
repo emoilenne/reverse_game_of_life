@@ -6,18 +6,13 @@ from testcase import TestCase
 from modelStorage import ModelStorage
 
 class TrainingAgent:
-    def __init__(self, height, width, minSteps, maxSteps, windowSize = 4):
+    def __init__(self, height, width, minSteps, maxSteps):
         """
             Initiate training agent by grid dimentions, size of the window that
             will scan training data and create storage for training models.
         """
-        # Check if the window size exceeds grid dimentions
-        if windowSize > height or windowSize > width:
-            raise Exception("Window size exceeds the dimentions of the grid")
-
         self.height = height
         self.width = width
-        self.windowSize = windowSize
 
         # Delete previous log file
         try:
@@ -26,7 +21,7 @@ class TrainingAgent:
             pass
 
         # Create models storage for each humber of game steps (1...5)
-        self.models = {index: ModelStorage(steps=index, size=windowSize) for index in range(minSteps, maxSteps + 1)}
+        self.models = {index: ModelStorage(steps=index) for index in range(minSteps, maxSteps + 1)}
 
     def loadModels(self, modelsFilename, log=True):
         """
@@ -60,15 +55,12 @@ class TrainingAgent:
                 steps = ModelStorage.getSteps(fields, row)
 
                 # Add model to storage
-                modelHash = self.models[steps].add(fields, row)
-
-                # Save window size
-                self.windowSize = self.models[steps][modelHash].size
+                neighbors = self.models[steps].add(fields, row)
 
                 timeCaseEnd = time.time()
                 if log:
                     # Print hash of the model
-                    print("Loading model #%d for #%d steps took %.3f ms" % (modelHash, steps, (timeCaseEnd - timeCaseStart) * 1000.))
+                    print("Loading model with #%d neighbors for #%d steps took %.3f ms" % (neighbors, steps, (timeCaseEnd - timeCaseStart) * 1000.))
 
         timeEnd = time.time()
         if log:
@@ -95,7 +87,7 @@ class TrainingAgent:
             modelsCSVwriter = csv.writer(modelsCSV)
 
             # Write names of the fields to models file
-            modelsCSVwriter.writerow(['hash', 'steps', 'size', 'occurrences'] + ['model.' + str(i + 1) for i in range(self.windowSize ** 2)])
+            modelsCSVwriter.writerow(['steps', 'neighbors', 'position', 'alive', 'dead', 'same', 'opposite', 'occurrences'])
 
             if log:
                 # Indicate saving
@@ -107,17 +99,17 @@ class TrainingAgent:
                 modelStorage = self.models[steps]
 
                 # Go through each model and write it in the file
-                for modelHash, model in modelStorage.items():
+                for neighbors, model in modelStorage.items():
                     # Track execution time of one case
                     timeCaseStart = time.time()
 
                     # Write model values to models file
-                    modelsCSVwriter.writerow(model.createRow())
+                    modelsCSV.write(model.createRow())
 
                     timeCaseEnd = time.time()
                     if log:
-                        # Print hash of the model
-                        print("Saving model #%d for #%d steps took %.3f ms" % (modelHash, steps, (timeCaseEnd - timeCaseStart) * 1000.))
+                        # Print info about the model
+                        print("Saving model with #%d neighbors for #%d steps took %.3f ms" % (neighbors, steps, (timeCaseEnd - timeCaseStart) * 1000.))
 
         timeEnd = time.time()
         if log:
@@ -157,7 +149,7 @@ class TrainingAgent:
                 timeCaseStart = time.time()
 
                 # Create a testcase
-                testcase = TestCase(fields, row, self.height, self.width, self.windowSize, isTraining=True)
+                testcase = TestCase(fields, row, self.height, self.width, isTraining=True)
 
                 # Train this test case
                 testcase.train(self.models)
@@ -217,7 +209,7 @@ class TrainingAgent:
                     timeCaseStart = time.time()
 
                     # Create a testcase
-                    testcase = TestCase(fields, row, self.height, self.width, self.windowSize, isTraining=False)
+                    testcase = TestCase(fields, row, self.height, self.width, isTraining=False)
 
                     # Predict start grid for the test case
                     startGrid = testcase.predict(self.models)

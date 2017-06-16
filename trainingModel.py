@@ -1,85 +1,128 @@
 import numpy as np
-from window import Transformation
+from functools import reduce
+from operator import add
+
+class CellPosition:
+    # States of cell
+    CORNER = 'corner'
+    EDGE = 'edge'
+    MIDDLE = 'middle'
+
+    all = [CORNER, EDGE, MIDDLE]
+
+    @staticmethod
+    def getCellPosition(position, grid):
+        """
+            Return position of the cell in the grid (corner, edge, middle).
+        """
+        # Get positions
+        cellHeight, cellWidth = position
+        gridHeight, gridWidth = grid.shape
+
+        # Corners
+        if (cellWidth == 0 or cellWidth + 1 == gridWidth) and (cellHeight == 0 or cellHeight + 1 == gridHeight):
+            return CellPosition.CORNER
+
+        # Edges
+        if cellWidth == 0 or cellWidth + 1 == gridWidth or cellHeight == 0 or cellHeight + 1 == gridHeight:
+            return CellPosition.EDGE
+
+        # Middle
+        return CellPosition.MIDDLE
+
+    @staticmethod
+    def getNeighbors(position, grid):
+        """
+            Get number of neighbors of the cell.
+        """
+        cellHeight, cellWidth = position
+        gridHeight, gridWidth = grid.shape
+        neighbors = 0
+
+        # Define neighborhood of the cell
+        nStartHeight = max(cellHeight - 1, 0)
+        nStartWidth = max(cellWidth - 1, 0)
+        nEndHeight = min(cellHeight + 1, gridHeight - 1)
+        nEndWidth = min(cellWidth + 1, gridWidth - 1)
+
+        # Count neighbors
+        for h in range(nStartHeight, nEndHeight + 1):
+            for w in range(nStartWidth, nEndWidth + 1):
+                if (h, w) != position:
+                    neighbors += grid[h,w]
+
+        return neighbors
+
 
 class TrainingModel:
-    def __init__(self, steps=0, size=0, modelHash=0, fields=None, row=None):
+
+    fields = ['alive', 'dead', 'same', 'opposite', 'occurrences']
+    prediction = {
+        'alive': lambda x: 1,
+        'dead': lambda x: 0,
+        'same': lambda x: x,
+        'opposite': lambda x : 1 - x
+    }
+
+    def __init__(self, steps=0, neighbors=0, fields=None, row=None):
         """
             Initiate training model, which stores predictions of the start grid
             and number of occurrences of this model in the testing.
         """
+        self.data = {position: [0] * len(TrainingModel.fields) for position in CellPosition.all}
         if fields and row:
             self.parseRow(fields, row)
         else:
-            self.occurrences = 0
-            self.data = np.zeros((size, size), dtype=np.int32)
-            self.size = size
             self.steps = steps
-            self.modelHash = modelHash
+            self.neighbors = neighbors
 
-    def addPrediction(self, window): #TODO if size is not needed, can change window to data
+    def train(self, wasAlive, isAlive, cellPosition):
         """
-            Add start grid values of this model to predictions.
+            Add start grid value of this model to predictions.
         """
-        self.occurrences += 1
-        self.data += window.data
+        self.data[cellPosition] = map(add, self.data[cellPosition], [wasAlive, 1 - wasAlive, 1 - abs(isAlive - wasAlive), abs(isAlive - wasAlive), 1])
 
-    def predict(self, transformation, position, height, width):
+    def predict(self, cellPosition, stopGridValue):
         """
-            Return predictions grid, that was formed on the training data.
-            Grid has shape (height, width, 2), where every [height, width] cell
-            represents set [countCellAlive, occurrencesOfCell]: countCellAlive indicates
-            how many times cell was alive in total of occurrencesOfCell cases
-            during training.
+            Predict is cell alive or dead in the position.
         """
-        # Create empty prediction grid with shape (height, width, 2)
-        predictionGrid = np.zeros(height * width * 2).reshape(height, width, 2)
+        # Return 0 or 1 based on training data
+        if self.data[cellPosition][-1] == 0:
+            return 0
 
-        # Transform model according to transformation needed
-        model = Transformation.do[transformation](self.data)
+        # Get predictions on every state
+        predictions = [val / float(self.data[cellPosition][-1]) for val in self.data[cellPosition][:-1]]
 
-        # Create model3d that stores [countCellAlive, occurrencesOfCell] for each element of model,
-        # where occurrencesOfCell == self.occurrences
-        model3d = np.array([model[h,w] if isCellAliveElem == 0 else self.occurrences for h in range(self.size) for w in range(self.size) for isCellAliveElem in range(2)]).reshape(self.size, self.size, 2)
+        #TODO can save this state when predictions is called, and when training is called, unset it
+        # Get most likely state
+        state = TrainingModel.fields[predictions.index(max(predictions))]
 
-        # Add model on the prediction grid at the position
-        predictionGrid[position[0]:position[0] + self.size, position[1]: position[1] + self.size] = model3d
-
-        return predictionGrid
+        return int(TrainingModel.prediction[state](stopGridValue))
 
     def parseRow(self, fields, row):
-        # Retrieve data from row
+        """
+            Retrieve data from row.
+        """
         try:
-            #TODO can just read values as hash,steps,sie,occurrences,models.1,models.2,... without reading field names
             data = {fields[index]: row[index] for index in range(len(fields))}
-            self.modelHash = int(data['hash'])
-            del(data['hash'])
             self.steps = int(data['steps'])
-            del(data['steps'])
-            self.size = int(data['size'])
-            del(data['size'])
-            self.occurrences = int(data['occurrences'])
-            del(data['occurrences'])
-        except:
-            raise Exception("CSV file is not valid.")
-
-        # Check number of remaining fields
-        if len(data) != self.size ** 2:
-            raise Exception("Wrong number of cells for window size #%d" % self.size)
-
-        # Create data for the model
-        window = []
-        try:
-            # Read values from the file
-            for index in range(self.size ** 2):
-                window.append(int(data['model.' + str(index + 1)]))
-
-            # Creade NumPy array from obtained values
-            self.data = np.array(window, dtype=np.int32).reshape(self.size, self.size)
+            self.neighbors = int(data['neighbors'])
+            position = data['position']
+            if position not in CellPosition.all:
+                raise Exception("There is no such cell position.")
+            self.data[position][0] = int(data['alive'])
+            self.data[position][1] = int(data['dead'])
+            self.data[position][2] = int(data['same'])
+            self.data[position][3] = int(data['opposite'])
+            self.data[position][-1] = int(data['occurrences'])
         except Exception as e:
-            raise Exception("Unable to create model #%d for #%d steps" % (self.modelHash, self.steps))
+            raise Exception("CSV file is not valid: " + str(e))
 
     def createRow(self):
         """
             Create row of CSV that will store data from the model.
         """
-        return [self.modelHash, self.steps, self.size, self.occurrences] + list(self.data.reshape(self.size ** 2))
+        # There will be a row for each position of the cell
+        rows = {pos: "%d,%d,%s,%s\n" % (self.steps, self.neighbors, pos, ','.join(str(val) for val in self.data[pos])) for pos in CellPosition.all}
+
+        return reduce(lambda x, y: x + y, rows.values())
