@@ -21,7 +21,7 @@ class TestCase:
         self.height = height
         self.width = width
         totalValues = height * width * 2 if isTraining else height * width
-        if len(self.data) != totalValues:
+        if len(self.data) < totalValues:
             raise Exception("Dimentions of the grid don't match values in the CSV file.")
 
         # Create grids
@@ -53,7 +53,7 @@ class TestCase:
             Determine cell's model and add predictions to training models.
         """
         # Get number of neighbors
-        neighbors = CellPosition.getNeighbors(position, self.stopGrid)
+        neighbors = CellPosition.getNeighbors(position, self.stopGrid, self.steps)
 
         # Get cell position (corner, edge, middle)
         cellPosition = CellPosition.getCellPosition(position, self.stopGrid)
@@ -87,7 +87,7 @@ class TestCase:
         for height in range(self.height):
             for width in range(self.width):
                 # Get number of neighbors
-                neighbors = CellPosition.getNeighbors((height, width), self.stopGrid)
+                neighbors = CellPosition.getNeighbors((height, width), self.stopGrid, self.steps)
 
                 # Get cell position (corner, edge, middle)
                 cellPosition = CellPosition.getCellPosition((height, width), self.stopGrid)

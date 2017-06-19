@@ -31,7 +31,7 @@ class CellPosition:
         return CellPosition.MIDDLE
 
     @staticmethod
-    def getNeighbors(position, grid):
+    def getNeighbors(position, grid, steps):
         """
             Get number of neighbors of the cell.
         """
@@ -40,10 +40,10 @@ class CellPosition:
         neighbors = 0
 
         # Define neighborhood of the cell
-        nStartHeight = max(cellHeight - 1, 0)
-        nStartWidth = max(cellWidth - 1, 0)
-        nEndHeight = min(cellHeight + 1, gridHeight - 1)
-        nEndWidth = min(cellWidth + 1, gridWidth - 1)
+        nStartHeight = max(cellHeight - steps, 0)
+        nStartWidth = max(cellWidth - steps, 0)
+        nEndHeight = min(cellHeight + steps, gridHeight - 1)
+        nEndWidth = min(cellWidth + steps, gridWidth - 1)
 
         # Count neighbors
         for h in range(nStartHeight, nEndHeight + 1):
