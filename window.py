@@ -37,11 +37,9 @@ class Window:
         endPointHeight = startPointHeight + size
         endPointWidth = startPointWidth + size
 
-        # Check if dimensions of window exceed the grid
         if endPointWidth > gridHeight or endPointWidth > gridWidth:
             raise Exception("Window dimensions exceed the grid")
 
-        # Create array from the grid with specified dimensions
         self.size = size
         self.data = grid[startPointHeight:endPointHeight, startPointWidth:endPointWidth]
 
@@ -51,14 +49,7 @@ class Window:
             Return in a form (transformation, hash)
         """
 
-        # Hash window represents a window with same dimentions as current window with values 1, 2, 4, 8...
         hashWindow = np.array([2 ** x for x in range(self.size ** 2)]).reshape(self.size, self.size)
-
-        # Create dictionary with all possible transformations of current window
         allStates = {state: func(self.data) for state, func in Transformation.do.items()}
-
-        # Calculate each hash value for transformated windows
         hashes = {state: sum(sum(window * hashWindow)) for state, window in allStates.items()}
-
-        # Return minimum hash from all possible transformations
         return min(hashes.items(), key=lambda p: p[1])

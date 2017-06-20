@@ -13,12 +13,8 @@ class ModelStorage(dict):
         """
             Add model to models storage
         """
-        # Create model from row
         model = TrainingModel(fields=fields, row=row)
-
-        # SAve model
         self[model.modelHash] = model
-
         return model.modelHash
 
     @staticmethod
