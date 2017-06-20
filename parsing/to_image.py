@@ -16,7 +16,7 @@ try:
         outputCSVreader.next()
         color = lambda x: ALIVE_COLOR if x == '1' else NOCOLOR
         # id 1, steps 1
-        data = outputCSVreader.next()[2:]
+        data = outputCSVreader.next()[1:]
         for i in range(CELLS_HEIGHT):
             row = ''
             for j in range(CELLS_WIDTH):
