@@ -16,17 +16,17 @@ class Transformation:
     ORIGINAL:             lambda window: window,
     FLIP_VERTICALLY:      lambda window: window[::-1],
     FLIP_HORIZONTALLY:    lambda window: window[:,::-1],
-    ROTATE90:             lambda window: np.rot90(window),
+    ROTATE90:             lambda window: np.array([window[w,h] for h in range(len(window)) for w in range(len(window) - 1, -1, -1)]).reshape(window.shape),
     ROTATE180:            lambda window: window[:,::-1][::-1],
-    ROTATE270:            lambda window: np.rot90(window[:,::-1][::-1]),
-    FLIP_DIAGONAL1:       lambda window: np.rot90(window[::-1]),
-    FLIP_DIAGONAL2:       lambda window: np.rot90(window[:,::-1])
+    ROTATE270:            lambda window: np.array([window[w,h] for h in range(len(window) - 1, -1, -1) for w in range(len(window))]).reshape(window.shape),
+    FLIP_DIAGONAL1:       lambda window: np.array([window[w,h] for h in range(len(window)) for w in range(len(window))]).reshape(window.shape),
+    FLIP_DIAGONAL2:       lambda window: np.array([window[w,h] for h in range(len(window) - 1, -1, -1) for w in range(len(window) - 1, -1, -1)]).reshape(window.shape),
     }
 
 
 class Window:
 
-    def __init__(self, grid, startPoint=(0,0), size=4):
+    def __init__(self, grid, startPoint, size):
         """
             startPoint, height and width define the window from initial grid.
             The window will be size * size cells.
@@ -36,9 +36,6 @@ class Window:
         startPointHeight, startPointWidth = startPoint
         endPointHeight = startPointHeight + size
         endPointWidth = startPointWidth + size
-
-        if endPointWidth > gridHeight or endPointWidth > gridWidth:
-            raise Exception("Window dimensions exceed the grid")
 
         self.size = size
         self.data = grid[startPointHeight:endPointHeight, startPointWidth:endPointWidth]

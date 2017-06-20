@@ -18,6 +18,7 @@ class TestCase:
         self.height = height
         self.width = width
         self.windowSize = windowSize
+        self.expansion = windowSize - 1
         totalValues = height * width * 2 if isTraining else height * width
         if len(self.data) != totalValues:
             raise Exception("Dimentions of the grid don't match values in the CSV file.")
@@ -31,7 +32,8 @@ class TestCase:
 
     def createGrid(self, name):
         """
-            Create a grid with specific name from data stored in this test case.
+            Create a grid with specific name from data stored in this test case,
+            expanded in size - 1 cells in each dimention.
         """
         grid = []
         try:
@@ -40,7 +42,7 @@ class TestCase:
             grid = np.array(grid).reshape(self.height, self.width)
         except Exception as e:
             raise Exception("Unable to create %s grid" % name)
-        return grid
+        return np.pad(grid, ((self.expansion, self.expansion), (self.expansion, self.expansion)), mode='constant', constant_values=0)
 
     def trainWindow(self, position, models):
         """
@@ -58,25 +60,23 @@ class TestCase:
         """
             Run training on this test case, which will write predictions in the models.
         """
-        for height in range(self.height - self.windowSize + 1):
-            for width in range(self.width - self.windowSize + 1):
+        for height in range(self.height + self.expansion):
+            for width in range(self.width + self.expansion):
                 self.trainWindow((height, width), models)
 
     def predict(self, models):
         """
             Predict start grid based on stop grid of this test case using models.
         """
-        predictionGrid = np.zeros((self.height, self.width, 2))
-        for height in range(self.height - self.windowSize + 1):
-            for width in range(self.width - self.windowSize + 1):
+        predictionGrid = np.zeros((self.height + 2 * self.expansion, self.width + 2 * self.expansion))
+        for height in range(self.height + self.expansion):
+            for width in range(self.width + self.expansion):
                 stopWindow = Window(self.stopGrid, (height, width), self.windowSize)
                 transformation, stopWindowHash = stopWindow.toHash()
                 model = models[self.steps][stopWindowHash]
-                predictionGrid += model.predict(transformation, (height, width), self.height, self.width)
+                prediction = model.predict()
+                predictionGrid[height:height+self.windowSize, width:width+self.windowSize] += Transformation.do[transformation](prediction)
 
-        #TODO can create start grid directly from prediciton grid
-        probability = lambda count, occurrences: 0. if occurrences == 0 else count / float(occurrences)
-        probabilityGrid = np.array([probability(predictionGrid[h,w,0], predictionGrid[h,w,1]) for h in range(self.height) for w in range(self.width)]).reshape(self.height, self.width)
-        startGrid = np.array([round(probabilityGrid[h,w]) for h in range(self.height) for w in range(self.width)], dtype=np.int8).reshape(self.height, self.width)
-
+        predictionGrid = predictionGrid[self.expansion: -self.expansion, self.expansion: -self.expansion]
+        startGrid = np.array([int(round(predictionGrid[h,w] / (self.windowSize ** 2))) for h in range(self.height) for w in range(self.width)]).reshape((self.height, self.width))
         return startGrid

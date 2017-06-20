@@ -23,20 +23,14 @@ class TrainingModel:
         self.occurrences += 1
         self.data += window.data
 
-    def predict(self, transformation, position, height, width):
+    def predict(self):
         """
             Return predictions grid, that was formed on the training data.
-            Grid has shape (height, width, 2), where every [height, width] cell
-            represents set [countCellAlive, occurrencesOfCell]: countCellAlive indicates
-            how many times cell was alive in total of occurrencesOfCell cases
-            during training.
+            Each cell represents the probability of that cell to be alive.
         """
-        predictionGrid = np.zeros(height * width * 2).reshape(height, width, 2)
-        model = Transformation.do[transformation](self.data)
-        model3d = np.array([model[h,w] if isCellAliveElem == 0 else self.occurrences for h in range(self.size) for w in range(self.size) for isCellAliveElem in range(2)]).reshape(self.size, self.size, 2)
-        predictionGrid[position[0]:position[0] + self.size, position[1]: position[1] + self.size] = model3d
-
-        return predictionGrid
+        if self.occurrences == 0:
+            return np.zeros((self.size, self.size))
+        return self.data / float(self.occurrences)
 
     def parseRow(self, fields, row):
         try:
