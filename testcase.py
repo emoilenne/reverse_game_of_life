@@ -1,5 +1,5 @@
 import numpy as np
-from window import Window, Transformation
+from window import Window
 
 class TestCase:
     def __init__(self, fields, row, height, width, windowSize, isTraining):
@@ -50,9 +50,8 @@ class TestCase:
         """
         stopWindow = Window(self.stopGrid, position, self.windowSize)
         startWindow = Window(self.startGrid, position, self.windowSize)
-        transformation, stopWindowHash = stopWindow.toHash()
+        stopWindowHash = stopWindow.toHash()
         model = models[self.steps][stopWindowHash]
-        startWindow.data = Transformation.do[transformation](startWindow.data)
         model.addPrediction(startWindow)
         models[self.steps][stopWindowHash] = model
 
@@ -72,10 +71,9 @@ class TestCase:
         for height in range(self.height + self.expansion):
             for width in range(self.width + self.expansion):
                 stopWindow = Window(self.stopGrid, (height, width), self.windowSize)
-                transformation, stopWindowHash = stopWindow.toHash()
+                stopWindowHash = stopWindow.toHash()
                 model = models[self.steps][stopWindowHash]
-                prediction = model.predict()
-                predictionGrid[height:height+self.windowSize, width:width+self.windowSize] += Transformation.do[transformation](prediction)
+                predictionGrid[height:height+self.windowSize, width:width+self.windowSize] += model.predict()
 
         predictionGrid = predictionGrid[self.expansion: -self.expansion, self.expansion: -self.expansion]
         startGrid = np.array([int(round(predictionGrid[h,w] / (self.windowSize ** 2))) for h in range(self.height) for w in range(self.width)]).reshape((self.height, self.width))

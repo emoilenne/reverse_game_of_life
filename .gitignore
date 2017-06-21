@@ -1,8 +1,5 @@
 # Compiled code
 *.pyc
 
-# Files for testing
-*.csv
-
 # Log
 log*

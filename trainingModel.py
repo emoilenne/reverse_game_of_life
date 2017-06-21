@@ -1,5 +1,4 @@
 import numpy as np
-from window import Transformation
 
 class TrainingModel:
     def __init__(self, steps=0, size=0, modelHash=0, fields=None, row=None):
