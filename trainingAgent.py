@@ -4,6 +4,7 @@ import time
 import os
 from testcase import TestCase
 from modelStorage import ModelStorage
+from map import Map
 
 class TrainingAgent:
     def __init__(self, height, width, minSteps, maxSteps, windowSize = 4):
@@ -16,6 +17,7 @@ class TrainingAgent:
 
         self.height = height
         self.width = width
+        self.total = height * width
         self.windowSize = windowSize
 
         try:
@@ -147,3 +149,33 @@ class TrainingAgent:
         print("Testing took %.3f s or %.3f min" % (timeEnd - timeStart, (timeEnd - timeStart) / 60.))
         with open('log.txt', 'a+') as log:
             log.write("Testing took %.3f s or %.3f min\n" % (timeEnd - timeStart, (timeEnd - timeStart) / 60.))
+
+
+    def generateAndTrain(self, count):
+        fields = ['id', 'delta'] + ['start.' + str(i + 1) for i in range(self.total)] +
+                                    ['stop.' + str(i + 1) for i in range(self.total)]
+        totalTimeStart = time.time()
+        for id in range(count):
+            timeStart = time.time()
+            while True:
+                row = [str(id + 1)]
+                mapgen.generate()
+                steps = mapgen.getSteps()
+                row.append(str(steps))
+                row.extend(mapgen.getValues())
+                mapgen.step(steps)
+                row.extend(mapgen.getValues())
+                if mapgen.aliveCells() != 0:
+                    break
+            row = ','.join(row)
+            timeEnd = time.time()
+            print("Generating map #%d took %.3f ms" % (id, (timeEnd - timeStart) * 1000.))
+
+            timeStart = time.time()
+            testcase = TestCase(fields, row, self.height, self.width, self.windowSize, isTraining=True)
+            testcase.train(self.models)
+            timeEnd = time.time()
+            print("Training map #%d took %.3f ms" % (id, (timeEnd - timeStart) * 1000.))
+
+        totalTimeEnd = time.time()
+        print("Generating and training maps took %.3f s or %.3f min" % (timeEnd - timeStart, (timeEnd - timeStart) / 60.))
