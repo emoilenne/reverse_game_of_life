@@ -7,84 +7,80 @@ from modelStorage import ModelStorage
 from map import Map
 
 class TrainingAgent:
-    def __init__(self, height, width, minSteps, maxSteps, windowSize = 4):
+    def __init__(self, height, width, minSteps, maxSteps):
         """
             Initiate training agent by grid dimentions, size of the window that
             will scan training data and create storage for training models.
         """
-        if windowSize > height or windowSize > width:
-            raise Exception("Window size exceeds the dimentions of the grid")
-
         self.height = height
         self.width = width
         self.total = height * width
-        self.windowSize = windowSize
+        self.modelsFilename = 'csv/models'
 
         try:
             os.remove('log.txt')
         except:
             pass
 
-        self.models = {index: ModelStorage(steps=index, size=windowSize) for index in range(minSteps, maxSteps + 1)}
+        models4 = {index: ModelStorage(steps=index, size=4) for index in range(minSteps, maxSteps + 1)}
+        models5 = {index: ModelStorage(steps=index, size=5) for index in range(minSteps, maxSteps + 1)}
+        models6 = {index: ModelStorage(steps=index, size=6) for index in range(minSteps, maxSteps + 1)}
+        self.models = {4: models4, 5: models5, 6: models6}
 
-    def loadModels(self, modelsFilename):
+
+    def loadModels(self):
         """
-            Load model values from the file for predictions
+            Load model values from the files for predictions
         """
-        timeStart = time.time()
 
-        if not modelsFilename.endswith(".csv"):
-            modelsFilename += '.csv'
+        for size in range(4,7):
+            timeStart = time.time()
 
-        with open(modelsFilename, 'r') as modelsCSV:
-            modelsCSVreader = csv.reader(modelsCSV)
-            fields = modelsCSVreader.next()
+            with open(self.modelsFilename + str(size) + '.csv', 'r') as modelsCSV:
+                modelsCSVreader = csv.reader(modelsCSV)
+                fields = modelsCSVreader.next()
 
-            print("---- Loading models ----")
+                print("---- Loading models %d ----" % size)
 
-            for row in modelsCSVreader:
-                timeCaseStart = time.time()
-                steps = ModelStorage.getSteps(fields, row)
-                modelHash = self.models[steps].add(fields, row)
-                self.windowSize = self.models[steps][modelHash].size
-                timeCaseEnd = time.time()
-                print("Loading model #%d for #%d steps took %.3f ms" % (modelHash, steps, (timeCaseEnd - timeCaseStart) * 1000.))
+                for row in modelsCSVreader:
+                    timeCaseStart = time.time()
+                    steps = ModelStorage.getSteps(fields, row)
+                    modelHash = self.models[size][steps].add(fields, row)
+                    timeCaseEnd = time.time()
+                    print("Loading model #%d for #%d steps with window %d x %d took %.3f ms" % (modelHash, steps, size, size, (timeCaseEnd - timeCaseStart) * 1000.))
 
-        timeEnd = time.time()
-
-        print("Loading models took %.3f s" % (timeEnd - timeStart))
-        with open('log.txt', 'a+') as log:
-            log.write("Loading models took %.3f s\n" % (timeEnd - timeStart))
+            timeEnd = time.time()
+            print("Loading models %d took %.3f s" % (size, timeEnd - timeStart))
+            with open('log.txt', 'a+') as log:
+                log.write("Loading models %d took %.3f s\n" % (size, timeEnd - timeStart))
 
 
-    def saveModels(self, modelsFilename):
+    def saveModels(self):
         """
             Save trained models to the file for later use
         """
-        timeStart = time.time()
+        for size in range(4,7):
+            timeStart = time.time()
 
-        if not modelsFilename.endswith(".csv"):
-            trainFilename += '.csv'
+            with open(self.modelsFilename + str(size) + '.csv', 'w+') as modelsCSV:
+                modelsCSVwriter = csv.writer(modelsCSV)
+                modelsCSVwriter.writerow(['hash', 'steps', 'occurrences'] + ['model.' + str(i + 1) for i in range(size ** 2)])
 
-        with open(modelsFilename, 'w+') as modelsCSV:
-            modelsCSVwriter = csv.writer(modelsCSV)
-            modelsCSVwriter.writerow(['hash', 'steps', 'size', 'occurrences'] + ['model.' + str(i + 1) for i in range(self.windowSize ** 2)])
+                print("---- Saving models %d ----" % size)
 
-            print("---- Saving models ----")
+                for steps in self.models[size].keys():
+                    modelStorage = self.models[size][steps]
 
-            for steps in self.models.keys():
-                modelStorage = self.models[steps]
+                    for modelHash, model in modelStorage.items():
+                        timeCaseStart = time.time()
+                        modelsCSVwriter.writerow(model.createRow())
+                        timeCaseEnd = time.time()
+                        print("Saving model #%d for #%d steps with window %d x %d took %.3f ms" % (modelHash, steps, size, size, (timeCaseEnd - timeCaseStart) * 1000.))
 
-                for modelHash, model in modelStorage.items():
-                    timeCaseStart = time.time()
-                    modelsCSVwriter.writerow(model.createRow())
-                    timeCaseEnd = time.time()
-                    print("Saving model #%d for #%d steps took %.3f ms" % (modelHash, steps, (timeCaseEnd - timeCaseStart) * 1000.))
-
-        timeEnd = time.time()
-        print("Saving models took %.3f s" % (timeEnd - timeStart))
-        with open('log.txt', 'a+') as log:
-            log.write("Saving models took %.3f s\n" % (timeEnd - timeStart))
+            timeEnd = time.time()
+            print("Saving models %d took %.3f s" % (size, timeEnd - timeStart))
+            with open('log.txt', 'a+') as log:
+                log.write("Saving models %d took %.3f s\n" % (size, timeEnd - timeStart))
 
 
 
@@ -105,7 +101,7 @@ class TrainingAgent:
 
             for row in trainCSVreader:
                 timeCaseStart = time.time()
-                testcase = TestCase(fields, row, self.height, self.width, self.windowSize, isTraining=True)
+                testcase = TestCase(fields, row, self.height, self.width, isTraining=True)
                 testcase.train(self.models)
                 timeCaseEnd = time.time()
                 print("Training #%d took %.3f ms" % (testcase.getId(), (timeCaseEnd - timeCaseStart) * 1000.))
@@ -139,7 +135,7 @@ class TrainingAgent:
 
                 for row in predictCSVreader:
                     timeCaseStart = time.time()
-                    testcase = TestCase(fields, row, self.height, self.width, self.windowSize, isTraining=False)
+                    testcase = TestCase(fields, row, self.height, self.width, isTraining=False)
                     startGrid = testcase.predict(self.models)
                     outputCSVwriter.writerow([testcase.getId()] + list(startGrid.reshape(self.height * self.width)))
                     timeCaseEnd = time.time()
@@ -152,9 +148,10 @@ class TrainingAgent:
 
 
     def generateAndTrain(self, count):
-        fields = ['id', 'delta'] + ['start.' + str(i + 1) for i in range(self.total)] +
+        fields = ['id', 'delta'] + ['start.' + str(i + 1) for i in range(self.total)] + \
                                     ['stop.' + str(i + 1) for i in range(self.total)]
         totalTimeStart = time.time()
+        mapgen = Map(self.height, self.width)
         for id in range(count):
             timeStart = time.time()
             while True:
@@ -167,15 +164,16 @@ class TrainingAgent:
                 row.extend(mapgen.getValues())
                 if mapgen.aliveCells() != 0:
                     break
-            row = ','.join(row)
             timeEnd = time.time()
             print("Generating map #%d took %.3f ms" % (id, (timeEnd - timeStart) * 1000.))
 
             timeStart = time.time()
-            testcase = TestCase(fields, row, self.height, self.width, self.windowSize, isTraining=True)
+            testcase = TestCase(fields, row, self.height, self.width, isTraining=True)
             testcase.train(self.models)
             timeEnd = time.time()
             print("Training map #%d took %.3f ms" % (id, (timeEnd - timeStart) * 1000.))
 
         totalTimeEnd = time.time()
-        print("Generating and training maps took %.3f s or %.3f min" % (timeEnd - timeStart, (timeEnd - timeStart) / 60.))
+        print("Generating and training maps took %.3f s or %.3f min" % (totalTimeEnd - totalTimeStart, (totalTimeEnd - totalTimeStart) / 60.))
+        with open('log.txt', 'a+') as log:
+            log.write("Generating and training maps took %.3f s or %.3f min\n" % (totalTimeEnd - totalTimeStart, (totalTimeEnd - totalTimeStart) / 60.))

@@ -2,25 +2,32 @@ import numpy as np
 
 class Window:
 
-    def __init__(self, grid, startPoint, size):
+    @staticmethod
+    def overlap(first, second, position):
         """
-            startPoint, height and width define the window from initial grid.
-            The window will be size * size cells.
-            If dimensions exceed the grid, the exception will be raised.
+            For overlapping windows determine the area that is overlapping.
         """
-        gridHeight, gridWidth = grid.shape
-        startPointHeight, startPointWidth = startPoint
-        endPointHeight = startPointHeight + size
-        endPointWidth = startPointWidth + size
+        firstStart = (max(0, position[0]), max(0, position[1]))
+        firstEnd = (min(first.shape[0], second.shape[0] + position[0]), min(first.shape[1], second.shape[1] + position[1]))
+        secondStart = (max(0, -position[0]), max(0, -position[1]))
+        secondEnd = (min(second.shape[0], first.shape[0] - position[0]), min(second.shape[1], first.shape[1] - position[1]))
+        return firstStart, firstEnd, secondStart, secondEnd
 
+    def __init__(self, grid, start, size):
+        """
+            Start and size of the window define the window from initial grid.
+            The window will be size * size cells.
+        """
         self.size = size
-        self.data = grid[startPointHeight:endPointHeight, startPointWidth:endPointWidth]
+        self.data = np.zeros((size, size), dtype=np.int8)
+        gStart, gEnd, wStart, wEnd = Window.overlap(grid, self.data, start)
+        self.data[wStart[0]:wEnd[0], wStart[1]:wEnd[1]] = grid[gStart[0]:gEnd[0], gStart[1]:gEnd[1]]
+
 
     def toHash(self):
         """
             Calculate the hash of the window.
         """
 
-        hashedWindow = 2 ** self.data
-
-        return sum([sum(hashedWindow[row]) for row in range(self.size)])
+        hashedWindow = [2 ** (self.size * h + w) * self.data[h,w] for h in range(self.size) for w in range(self.size)]
+        return sum(hashedWindow)

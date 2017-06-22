@@ -3,7 +3,7 @@ from sys import argv
 
 MAPS = 100
 
-agent = TrainingAgent(height=20, width=20, minSteps=1, maxSteps=5, windowSize=7)
+agent = TrainingAgent(height=20, width=20, minSteps=1, maxSteps=5)
 
 if (len(argv) != 2):
     print "usage: ./%s {filename.csv or 'generate'}"
@@ -11,5 +11,5 @@ if (len(argv) != 2):
 if argv[1] == 'generate':
     agent.generateAndTrain(MAPS)
 else:
-    agent.train('csv/train100.csv')
-agent.saveModels('csv/models100.csv')
+    agent.train('csv/train.csv')
+agent.saveModels()

@@ -1,17 +1,17 @@
 import numpy as np
 
 class TrainingModel:
-    def __init__(self, steps=0, size=0, modelHash=0, fields=None, row=None):
+    def __init__(self, size, steps=0, modelHash=0, fields=None, row=None):
         """
             Initiate training model, which stores predictions of the start grid
             and number of occurrences of this model in the testing.
         """
+        self.size = size
         if fields and row:
             self.parseRow(fields, row)
         else:
             self.occurrences = 0
             self.data = np.zeros((size, size), dtype=np.int32)
-            self.size = size
             self.steps = steps
             self.modelHash = modelHash
 
@@ -38,8 +38,6 @@ class TrainingModel:
             del(data['hash'])
             self.steps = int(data['steps'])
             del(data['steps'])
-            self.size = int(data['size'])
-            del(data['size'])
             self.occurrences = int(data['occurrences'])
             del(data['occurrences'])
         except:
@@ -60,4 +58,4 @@ class TrainingModel:
         """
             Create row of CSV that will store data from the model.
         """
-        return [self.modelHash, self.steps, self.size, self.occurrences] + list(self.data.reshape(self.size ** 2))
+        return [self.modelHash, self.steps, self.occurrences] + list(self.data.reshape(self.size ** 2))

@@ -13,7 +13,7 @@ class ModelStorage(dict):
         """
             Add model to models storage
         """
-        model = TrainingModel(fields=fields, row=row)
+        model = TrainingModel(size=self.size, fields=fields, row=row)
         self[model.modelHash] = model
         return model.modelHash
 
