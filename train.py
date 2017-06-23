@@ -11,5 +11,5 @@ if (len(argv) != 2):
 if argv[1] == 'generate':
     agent.generateAndTrain(MAPS)
 else:
-    agent.train('csv/train.csv')
+    agent.train(argv[1])
 agent.saveModels()

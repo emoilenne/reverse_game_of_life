@@ -67,7 +67,8 @@ class TestCase:
             Predict start grid based on stop grid of this test case using models.
         """
         predictionGrid = np.zeros((self.height, self.width))
-        for size, models in reversed(allModels.items()):
+        for size, models in allModels.items():
+            predictionGrid /= 10.
             for height in range(1 - size, self.height):
                 for width in range(1 - size, self.width):
                     stopWindow = Window(self.stopGrid, (height, width), size)
@@ -78,5 +79,5 @@ class TestCase:
                     predictionGrid[gStart[0]:gEnd[0], gStart[1]:gEnd[1]] += prediction[wStart[0]:wEnd[0], wStart[1]:wEnd[1]] / (size ** 2)
 
         # print predictionGrid
-        startGrid = np.array([1 if predictionGrid[h,w] >= 0.2 else 0 for h in range(self.height) for w in range(self.width)]).reshape((self.height, self.width))
+        startGrid = np.array([1 if predictionGrid[h,w] >= 0.45 else 0 for h in range(self.height) for w in range(self.width)]).reshape((self.height, self.width))
         return startGrid
