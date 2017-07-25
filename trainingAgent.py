@@ -88,6 +88,7 @@ class TrainingAgent:
         """
             Train agent to predict start grid based on training data from the csv file.
         """
+        self.tryLoadModels()
         timeStart = time.time()
 
         if not trainFilename.endswith(".csv"):
@@ -146,8 +147,24 @@ class TrainingAgent:
         with open('log.txt', 'a+') as log:
             log.write("Testing took %.3f s or %.3f min\n" % (timeEnd - timeStart, (timeEnd - timeStart) / 60.))
 
+    def tryLoadModels(self):
+        models_exist = sum([not os.path.isfile(self.modelsFilename + str(windowSize) + '.csv') for windowSize in range(4, 7)]) == 0
+        if models_exist:
+            load = raw_input("There are existing models. Do you want to load them in addition to training? (y/n): ")
+            if load == 'y':
+                try:
+                    self.loadModels()
+                    print "Successfully loaded models, running training on top of them..."
+                except:
+                    print "Couldn't laod previous models, running training without them..."
+            elif load == 'n':
+                pass
+            else:
+                print "Please select y or n."
+                exit(1)
 
     def generateAndTrain(self, count):
+        self.tryLoadModels()
         fields = ['id', 'delta'] + ['start.' + str(i + 1) for i in range(self.total)] + \
                                     ['stop.' + str(i + 1) for i in range(self.total)]
         totalTimeStart = time.time()
